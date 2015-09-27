@@ -1,0 +1,100 @@
+---
+title: "Machine Learning Project"
+author: "Jiahui Cai"
+date: "Sunday, September 27, 2015"
+output: html_document
+---
+
+<h1> Summary </h1> 
+
+The objective of this project is to predict the manner in which a group of test subjects are doing their exercises. The group is made to perform a set of exercises (variable <i>classe</i>, labelled A to E) correctly and wrongly.
+
+Findings will be used to create a model which will then be used to predict 20 different test cases. 
+
+The dataset used is from http://groupware.les.inf.puc-rio.br/har.
+
+<h1> Data Cleaning </h1>
+
+We'll load the following libraries
+```{r}
+library(caret)
+library(rpart)
+library(randomForest)
+```
+
+The csv files provided are imported and cleaned of invalid rows. 
+
+```{r}
+
+if (!file.exists("pml-training.csv")){
+    download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",
+                  "./data/pml-training.csv")
+    }
+
+trainData <- read.csv("pml-training.csv", na.strings = c("NA", "#DIV/0!", ""))
+
+cleanIndex <- sapply(trainData, function(x) {sum(is.na(x))})
+
+trainData <- trainData[,which(cleanIndex == 0)]
+
+```
+ 
+We'll next look into the data to find out more about its contents.
+
+```{r}
+str(trainData)
+```
+
+From this, it can be seen that are some variables that are irrelevant to the study. Variables unrelated to belt, forearm, arm, dumbbell as well as classe are removed from the dataset. 
+
+
+```{r}
+trainData <- trainData[,-c(1:7)]
+```
+
+<h1> Data Exploration</h1> 
+
+With the cleaned data, we'll next split this into training and test data sets for further analysis after. 
+
+```{r}
+dataPart <- createDataPartition(y=trainData$classe, p=0.6, list=FALSE)
+trainingSet <- trainData[dataPart,]
+testingSet <- trainData[-dataPart,]
+```
+
+<h1>Modelling </h1>
+
+With the above setup, we can fit a model using Random Forest. 
+
+```{r}
+model <- train(classe~., method="rf", data=trainingSet)
+model
+```
+
+With this, we can then use the test data set to validate and look at its confusion matrix. 
+
+
+```{r}
+predicted <- predict(model, testingSet)
+confusionMatrix(testingSet$classe, predicted)
+
+```
+
+<h1> Conclusions </h1>
+
+<h2> Accuracy </h2>
+The accuracy of the model is as below.
+```{r}
+postResample(predicted, testingSet$classe)
+```
+
+<h2> Out of sample error </h2> 
+The out of sample error is stated below. 
+
+```{r}
+1 - as.numeric(confusionMatrix(testingSet$classe, predicted)$overall[1])
+```
+
+
+<h1> Testing on the given test data set </h1>
+
